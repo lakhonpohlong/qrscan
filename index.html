@@ -62,7 +62,7 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title">Live QR Code Scanner 1.7</h1>
+        <h1 class="title">Live QR Code Scanner 1.8</h1>
         <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
@@ -150,34 +150,34 @@
             }
         }
 
-        // Scan QR Code & Trigger Comparison (Continuous Scanning)
         function scanQRCode() {
             function processFrame() {
-                if (video.videoWidth > 0 && video.videoHeight > 0) {
-                    canvas.width = video.videoWidth;  // Increase resolution
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    ctx.filter = "contrast(280%) brightness(180%)"; // Boost contrast & brightness
+                if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
+                // Optimize canvas size for performance
+                const scaleFactor = window.innerWidth < 768 ? 1.2 : 2;
+                canvas.width = video.videoWidth / scaleFactor;
+                canvas.height = video.videoHeight / scaleFactor;
 
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); // This should now work
-                }
-
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.filter = "contrast(180%) brightness(110%)"; // Light image processing
 
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, canvas.width, canvas.height);
 
                 if (code) {
-                    compareQRCode(code.data); // Compare with stored data
+                    compareQRCode(code.data); // Handle the detected QR code
 
-                    setTimeout(processFrame, 5000); // Wait 2 seconds before scanning again
-                } else {
-                    requestAnimationFrame(processFrame); // Continue scanning
+                    // Do not continue scanning—exit the loop
+                    return;
                 }
+
+                setTimeout(() => requestAnimationFrame(processFrame), 100); // Optimized FPS
             }
 
-            requestAnimationFrame(processFrame); // Start scanning loop
+            requestAnimationFrame(processFrame);
         }
+
 
         // Start camera and scanning
         async function startCamera() {
