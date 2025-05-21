@@ -62,7 +62,7 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title">Live QR Code Scanner 1.8</h1>
+        <h1 class="title">Live QR Code Scanner 1.9</h1>
         <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
@@ -168,14 +168,14 @@
                 if (code) {
                     compareQRCode(code.data); // Handle the detected QR code
 
-                    // Do not continue scanning—exit the loop
-                    return;
-                }
+                    setTimeout(processFrame, 5000); // Wait 2 seconds before scanning again
+                } else {
 
-                setTimeout(() => requestAnimationFrame(processFrame), 100); // Optimized FPS
+                    requestAnimationFrame(processFrame); // Continue scanning
+                }
             }
 
-            requestAnimationFrame(processFrame);
+            setTimeout(() => requestAnimationFrame(processFrame), 100); // Optimized FPS
         }
 
 
