@@ -54,7 +54,7 @@
         }
 
         video {
-            width: 480px;
+            width: 100%;
             /* 4cm ≈ 80px */
             height: 400px;
             border: 2px solid #00d1b2;
@@ -164,8 +164,8 @@
 
                 // Optimize canvas size for performance
                 const scaleFactor = window.innerWidth < 768 ? 1.2 : 2;
-                canvas.width = 480;
-                canvas.height = 400;
+                canvas.width = video.videoWidth;  // Increase resolution
+                canvas.height = video.videoHeight;
 
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 ctx.filter = "contrast(180%) brightness(110%)"; // Light image processing
