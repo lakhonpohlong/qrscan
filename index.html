@@ -53,6 +53,14 @@
             transform: translateX(26px);
         }
 
+        video {
+            width: 480px;
+            /* 4cm ≈ 80px */
+            height: 400px;
+            border: 2px solid #00d1b2;
+            border-radius: 8px;
+        }
+
         .container {
             display: flex;
             flex-direction: column;
@@ -156,8 +164,8 @@
 
                 // Optimize canvas size for performance
                 const scaleFactor = window.innerWidth < 768 ? 1.2 : 2;
-                canvas.width = video.videoWidth / scaleFactor;
-                canvas.height = video.videoHeight / scaleFactor;
+                canvas.width = 480;
+                canvas.height = 400;
 
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 ctx.filter = "contrast(180%) brightness(110%)"; // Light image processing
