@@ -32,7 +32,7 @@
 </head>
 
 <body>
-    <h1>QR Code Scanner v1.6</h1>
+    <h1>QR Code Scanner v1.7</h1>
     <div id="reader"></div>
     <p id="qr-result">Scanned QR: None</p>
     <button id="toggle-btn">Start Camera</button>
@@ -100,7 +100,8 @@
             try {
                 let devices = await Html5Qrcode.getCameras(); // Get available cameras
                 if (devices.length > 0) {
-                    let cameraId = devices[1].id; // Choose the first camera
+                    let backCamera = devices.find(device => device.label.toLowerCase().includes("back"));
+                    let cameraId = backCamera ? backCamera.id : devices[0].id; // Default to back camera if available
                     scanner.start(cameraId, {}, onScanSuccess, onScanFailure);
                 } else {
                     console.error("No cameras found!");
