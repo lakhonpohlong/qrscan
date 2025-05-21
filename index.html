@@ -62,7 +62,7 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title">Live QR Code Scanner</h1>
+        <h1 class="title">Live QR Code Scanner 1.2</h1>
         <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
@@ -178,7 +178,7 @@
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 1920 }, height: { ideal: 1080 },
+                        width: { ideal: 7680 }, height: { ideal: 4320 },
                         facingMode: "environment",
                         focusMode: "continuous"
                     }
