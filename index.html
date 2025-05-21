@@ -238,14 +238,23 @@
 
                 const result = await response.json();
                 console.log("Saved Data:", result);
-
-                const resultSplit = result.concatValue.split("-");
                 result.textContent = "";
                 scannedContent.textContent = "";
-                const alertObject = {
-                    title: "✅ Sucess!",
-                    message: `GPS Serial No. : ${firstIndex}\nVehicle Reg No. :${resultSplit[1]}\nPolice Station :${resultSplit[0]}`
-                };
+                let alertObject = {}
+                if (result.concatValue) {
+                    const resultSplit = result.concatValue.split("-");
+
+                    alertObject = {
+                        title: "✅ Sucess!",
+                        message: `GPS Serial No. : ${firstIndex}\nVehicle Reg No. :${resultSplit[1]}\nPolice Station :${resultSplit[0]}`
+                    };
+                } else {
+                    alertObject = {
+                        title: "✅ Sucess!",
+                        message: result.message
+                    };
+                }
+
 
                 alert(`${alertObject.title}\n${alertObject.message}`);
 
