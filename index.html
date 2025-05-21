@@ -234,6 +234,14 @@
                 });
 
                 const result = await response.json();
+                const resultSplit = result.split("-");
+                const alertObject = {
+                    title: "✅ Sucess!",
+                    message: `GPS Serial No. : ${firstIndex}\n\nVehicle Reg No. :${resultSplit[1]}\n\nPolice Station :${resultSplit[0]}`
+                };
+
+                alert(`${alertObject.title}\n${alertObject.message}`);
+
                 console.log("Saved Data:", result);
             } catch (error) {
                 console.error("Error sending data:", error);
