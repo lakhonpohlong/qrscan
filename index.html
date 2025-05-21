@@ -5,104 +5,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
         }
 
-        #reader {
-            width: 500px;
+        #preview {
+            width: 100%;
+            max-width: 500px;
             margin: auto;
+            border: 2px solid #00d1b2;
         }
 
         #qr-result {
             font-size: 18px;
             font-weight: bold;
-        }
-
-        button {
-            padding: 10px 20px;
             margin-top: 10px;
-            font-size: 16px;
-            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
-    <h1>QR Code Scanner v1.7</h1>
-    <div id="reader"></div>
-    <p id="qr-result">Scanned QR: None</p>
-    <button id="toggle-btn">Start Camera</button>
-    <button id="torch-btn">Toggle Flashlight</button>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">QR Code Scanner</h1>
+            <video id="preview"></video>
+            <p id="qr-result" class="notification is-primary">Scanned QR: None</p>
+            <button id="toggle-btn" class="button is-success">Start Camera</button>
+        </div>
+    </section>
 
     <script>
         let scanner;
         let cameraOn = false;
 
-        async function getCameraStream() {
-            try {
-                let stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 },
-                        focusMode: "continuous", // Enables autofocus
-                        facingMode: "environment"
-                    }
-                });
-
-                return stream;
-            } catch (err) {
-                console.error("Error accessing camera:", err);
-            }
-        }
-
-        async function startScannerddd() {
-            let stream = await getCameraStream();
-
-            if (stream) {
-                scanner = new Html5Qrcode("reader", {
-                    fps: 20,
-                    qrbox: { width: 400, height: 400 },
-                    aspectRatio: 2, // Helps with autofocus
-                    supportedFormats: [Html5QrcodeSupportedFormats.QR_CODE]
-                });
-
-                scanner.start(
-                    stream.getVideoTracks()[0], // Pass the camera video track
-                    {}, // No extra parameters needed
-                    decodedText => {
-                        document.getElementById("qr-result").textContent = `📌 Scanned QR: ${decodedText}`;
-                    },
-                    error => console.warn(`Scan error: ${error}`)
-                );
-            }
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById("qr-result").textContent = `📌 Scanned QR: ${decodedText}`;
-        }
-
-        function onScanFailure(error) {
-            console.warn(`Scan error: ${error}`);
+        function onScanSuccess(content) {
+            document.getElementById("qr-result").textContent = `📌 Scanned QR: ${content}`;
         }
 
         async function startScanner() {
-            let scanner = new Html5Qrcode("reader", {
-                fps: 20,
-                qrbox: { width: 400, height: 400 },
-                aspectRatio: 2, // Helps with autofocus
-                supportedFormats: [Html5QrcodeSupportedFormats.QR_CODE]
-            });
+            scanner = new Instascan.Scanner({ video: document.getElementById("preview"), mirror: false });
+
+            scanner.addListener("scan", onScanSuccess);
 
             try {
-                let devices = await Html5Qrcode.getCameras(); // Get available cameras
-                if (devices.length > 0) {
-                    let backCamera = devices.find(device => device.label.toLowerCase().includes("back"));
-                    let cameraId = backCamera ? backCamera.id : devices[0].id; // Default to back camera if available
-                    scanner.start(cameraId, {}, onScanSuccess, onScanFailure);
+                let cameras = await Instascan.Camera.getCameras();
+                let backCamera = cameras.find(cam => cam.name.toLowerCase().includes("back"));
+                let cameraId = backCamera ? backCamera : cameras[0];
+
+                if (cameraId) {
+                    scanner.start(cameraId);
                 } else {
                     console.error("No cameras found!");
                 }
@@ -111,15 +66,7 @@
             }
         }
 
-
-        function toggleTorch() {
-            if (scanner) {
-                scanner.applyTorch(cameraOn); // Toggle flashlight
-            }
-        }
-
         document.getElementById("toggle-btn").addEventListener("click", startScanner);
-        document.getElementById("torch-btn").addEventListener("click", toggleTorch);
     </script>
 </body>
 
