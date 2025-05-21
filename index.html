@@ -4,69 +4,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+    <title>Live QR Code Scanner</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
         }
 
-        #preview {
-            width: 100%;
-            max-width: 500px;
-            margin: auto;
-            border: 2px solid #00d1b2;
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
 
-        #qr-result {
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 10px;
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #2196F3;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
         }
     </style>
 </head>
 
 <body>
-    <section class="section">
-        <div class="container">
-            <h1 class="title">QR Code Scanner</h1>
-            <video id="preview"></video>
-            <p id="qr-result" class="notification is-primary">Scanned QR: None</p>
-            <button id="toggle-btn" class="button is-success">Start Camera</button>
-        </div>
-    </section>
+    <div class="container mt-5">
+        <h1 class="title">Live QR Code Scanner</h1>
+        <label class="switch">
+            <input type="checkbox" id="toggle-camera">
+            <span class="slider round"></span> Enable Camera
+        </label>
+        <video id="qr-video" autoplay></video>
+        <canvas id="qr-canvas" hidden></canvas>
+
+        <h2 class="subtitle">Scanned Content</h2>
+        <p id="scanned-content" class="notification"></p>
+        <p id="qr-result" class="notification"></p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Stored QR Code</th>
+                </tr>
+            </thead>
+            <tbody id="qr-table">
+                <!-- QR data will be added here -->
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        let scanner;
-        let cameraOn = false;
+        const apiUrl = "https://script.google.com/macros/s/AKfycbxvd0TSJS43EomN70qULX14lpCuTUwDMCvgNdS7QS3P1RfeME8b6JVZ3U-MnSMtazSM/exec"; // Replace with your web app URL
+        const video = document.getElementById('qr-video');
+        const canvas = document.getElementById('qr-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const result = document.getElementById('qr-result');
+        const qrTable = document.getElementById('qr-table');
+        const scannedContent = document.getElementById('scanned-content');
+        const toggle = document.getElementById("toggle-camera");
 
-        function onScanSuccess(content) {
-            document.getElementById("qr-result").textContent = `📌 Scanned QR: ${content}`;
-        }
+        let stream = null; // Store the camera stream
 
-        async function startScanner() {
-            scanner = new Instascan.Scanner({ video: document.getElementById("preview"), mirror: false });
+        let storedQRData = []; // Array to store fetched QR codes
 
-            scanner.addListener("scan", onScanSuccess);
+        // Fetch data only once and store it
+        async function fetchSheetData() {
 
             try {
-                let cameras = await Instascan.Camera.getCameras();
-                let backCamera = cameras.find(cam => cam.name.toLowerCase().includes("back"));
-                let cameraId = backCamera ? backCamera : cameras[0];
-
-                if (cameraId) {
-                    scanner.start(cameraId);
-                } else {
-                    console.error("No cameras found!");
-                }
-            } catch (err) {
-                console.error("Camera access error:", err);
+                const response = await fetch(apiUrl);
+                storedQRData = await response.json(); // Store fetched QR codes in array
+                //console.log("Stored QR Codes:", storedQRData);
+                populateTable(); // Add data to table
+            } catch (error) {
+                console.error("Error fetching data:", error);
             }
         }
 
-        document.getElementById("toggle-btn").addEventListener("click", startScanner);
+        // Populate table with fetched QR codes
+        function populateTable() {
+            qrTable.innerHTML = ""; // Clear previous data
+
+            storedQRData.forEach(qrCode => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${qrCode}</td>`;
+                qrTable.appendChild(row);
+            });
+        }
+
+        // Compare scanned QR code with stored data and display the scanned content
+        function compareQRCode(scannedQR) {
+            // Split scanned data by `|` and get the first index
+            const firstIndex = scannedQR.split("|")[0].trim();
+            scannedContent.textContent = `📌 Scanned Content: ${scannedQR}`; // Display scanned content
+            sendQRData(firstIndex)
+            const matchedData = storedQRData.find(item => item === firstIndex);
+            //const matchedData = storedQRData.find(item => item === scannedQR);
+
+            if (matchedData) {
+                result.textContent = `✅ QR Code Matched!\nData: ${matchedData}`;
+            } else {
+                result.textContent = "❌ No Match Found.";
+                // Hide the message after 5 seconds
+                setTimeout(() => {
+                    result.textContent = "";
+                }, 5000);
+            }
+        }
+
+        // Scan QR Code & Trigger Comparison (Continuous Scanning)
+        function scanQRCode() {
+            function processFrame() {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    canvas.width = video.videoWidth * 2;  // Increase resolution
+                    canvas.height = video.videoHeight * 2;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.filter = "contrast(250%) brightness(130%)"; // Boost contrast & brightness
+
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); // This should now work
+                }
+
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+                if (code) {
+                    compareQRCode(code.data); // Compare with stored data
+
+                    setTimeout(processFrame, 500); // Wait 2 seconds before scanning again
+                } else {
+                    requestAnimationFrame(processFrame); // Continue scanning
+                }
+            }
+
+            requestAnimationFrame(processFrame); // Start scanning loop
+        }
+
+        // Start camera and scanning
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1920 }, height: { ideal: 1080 },
+                        facingMode: "environment",
+                        focusMode: "continuous"
+                    }
+                });
+
+                video.srcObject = stream;
+                video.addEventListener("loadedmetadata", () => {
+
+                    setTimeout(() => {
+                        scanQRCode(); // Start scanning after a slight delay
+                    }, 1000);
+
+                });
+
+            } catch (error) {
+                result.textContent = "Error accessing camera: " + error;
+            }
+        }
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        }
+
+        // Toggle camera state
+        toggle.addEventListener("change", () => {
+            if (toggle.checked) {
+                startCamera();
+            } else {
+                stopCamera();
+            }
+        });
+
+        async function sendQRData(scannedQR) {
+            let firstIndex = ""
+            // Extract first index from the scanned QR code
+
+            if (scannedQR && typeof scannedQR === "string") {
+                firstIndex = scannedQR.split("|")[0].trim();
+                console.log("First Index:", firstIndex);
+            } else {
+                console.error("scannedQR is undefined or not a string!");
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8",
+                    },
+                    body: JSON.stringify({ qr_code: firstIndex })
+                });
+
+                const result = await response.json();
+                console.log("Saved Data:", result);
+            } catch (error) {
+                console.error("Error sending data:", error);
+            }
+        }
+
+
+        // Fetch data once when page loads
+        fetchSheetData();
     </script>
 </body>
 
