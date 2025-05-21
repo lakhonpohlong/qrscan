@@ -62,7 +62,7 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title">Live QR Code Scanner 1.5</h1>
+        <h1 class="title">Live QR Code Scanner 1.6</h1>
         <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
@@ -99,6 +99,7 @@
         let stream = null; // Store the camera stream
 
         let storedQRData = []; // Array to store fetched QR codes
+        let scanning = true;
 
         // Fetch data only once and store it
         async function fetchSheetData() {
@@ -146,6 +147,7 @@
 
         // Scan QR Code & Trigger Comparison (Continuous Scanning)
         function scanQRCode() {
+            if (!scanning) return; // Stop scanning if alert is active
             function processFrame() {
                 if (video.videoWidth > 0 && video.videoHeight > 0) {
                     canvas.width = video.videoWidth * 2;  // Increase resolution
@@ -162,6 +164,7 @@
                 const code = jsQR(imageData.data, canvas.width, canvas.height);
 
                 if (code) {
+                    scanning = false;
                     compareQRCode(code.data); // Compare with stored data
 
                     setTimeout(processFrame, 500); // Wait 2 seconds before scanning again
@@ -234,15 +237,16 @@
                 });
 
                 const result = await response.json();
-                const resultSplit = result.split("-");
+                console.log("Saved Data:", result);
+                const resultSplit = result.concatValue.split("-");
                 const alertObject = {
                     title: "✅ Sucess!",
-                    message: `GPS Serial No. : ${firstIndex}\n\nVehicle Reg No. :${resultSplit[1]}\n\nPolice Station :${resultSplit[0]}`
+                    message: `GPS Serial No. : ${firstIndex}\nVehicle Reg No. :${resultSplit[1]}\nPolice Station :${resultSplit[0]}`
                 };
 
                 alert(`${alertObject.title}\n${alertObject.message}`);
 
-                console.log("Saved Data:", result);
+
             } catch (error) {
                 console.error("Error sending data:", error);
             }
@@ -251,6 +255,10 @@
 
         // Fetch data once when page loads
         fetchSheetData();
+        // Resume scanning **ONLY AFTER ALERT IS CLOSED**
+        window.onfocus = function () {
+            scanning = true;
+        };
     </script>
 </body>
 
