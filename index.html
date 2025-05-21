@@ -62,7 +62,7 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title">Live QR Code Scanner 1.6</h1>
+        <h1 class="title">Live QR Code Scanner 1.7</h1>
         <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
@@ -238,7 +238,10 @@
 
                 const result = await response.json();
                 console.log("Saved Data:", result);
+
                 const resultSplit = result.concatValue.split("-");
+                result.textContent = "";
+                scannedContent.textContent = "";
                 const alertObject = {
                     title: "✅ Sucess!",
                     message: `GPS Serial No. : ${firstIndex}\nVehicle Reg No. :${resultSplit[1]}\nPolice Station :${resultSplit[0]}`
