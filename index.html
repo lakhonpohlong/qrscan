@@ -162,10 +162,10 @@
             function processFrame() {
                 if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
-                // Optimize canvas size for performance
-                const scaleFactor = window.innerWidth < 768 ? 1.2 : 2;
-                canvas.width = video.videoWidth;  // Increase resolution
-                canvas.height = video.videoHeight;
+                // Reduce canvas size for mobile optimization
+                const scaleFactor = window.innerWidth < 768 ? 1.2 : 2; // Adjust based on screen size
+                canvas.width = video.videoWidth / scaleFactor;
+                canvas.height = video.videoHeight / scaleFactor;
 
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 ctx.filter = "contrast(180%) brightness(110%)"; // Light image processing
