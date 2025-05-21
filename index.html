@@ -148,8 +148,8 @@
         function scanQRCode() {
             function processFrame() {
                 if (video.videoWidth > 0 && video.videoHeight > 0) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth * 2;  // Increase resolution
+                    canvas.height = video.videoHeight * 2;
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); // This should now work
@@ -174,7 +174,10 @@
         // Start camera and scanning
         async function startCamera() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" }
+                });
+
                 video.srcObject = stream;
                 video.addEventListener("loadedmetadata", () => {
 
