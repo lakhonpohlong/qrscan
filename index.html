@@ -86,7 +86,7 @@
         </label>
         <div class="video-container" id="videoContainer" style="display: none;">
             <video id="qr-video" autoplay></video>
-            <canvas id="qr-canvas" hidden></canvas>
+            <!-- <canvas id="qr-canvas" hidden></canvas> -->
         </div>
 
         <h2 class="subtitle">Scanned Content</h2>
@@ -110,8 +110,8 @@
     <script>
         const apiUrl = "https://script.google.com/macros/s/AKfycbxvd0TSJS43EomN70qULX14lpCuTUwDMCvgNdS7QS3P1RfeME8b6JVZ3U-MnSMtazSM/exec"; // Replace with your web app URL
         const video = document.getElementById('qr-video');
-        const canvas = document.getElementById('qr-canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        // const canvas = document.getElementById('qr-canvas');
+        // const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const result = document.getElementById('qr-result');
         const qrTable = document.getElementById('qr-table');
         const scannedContent = document.getElementById('scanned-content');
@@ -165,34 +165,60 @@
             }
         }
 
+        function cropImage(videoElement, x, y, width, height) {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // Set canvas size to crop dimensions
+            canvas.width = width;
+            canvas.height = height;
+
+            // Draw only the cropped portion
+            ctx.drawImage(videoElement, x, y, width, height, 0, 0, width, height);
+
+            return canvas.toDataURL("image/png"); // Returns cropped image as a data URL
+        }
+
         // Scan QR Code & Trigger Comparison (Continuous Scanning)
         function scanQRCode() {
             function processFrame() {
                 if (video.videoWidth > 0 && video.videoHeight > 0) {
-                    canvas.width = video.videoWidth;  // Increase resolution
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    ctx.filter = "contrast(280%) brightness(180%)"; // Boost contrast & brightness
+                    const cropX = video.videoWidth / 4;  // Example: Crop center area
+                    const cropY = video.videoHeight / 4;
+                    const cropWidth = video.videoWidth / 2;
+                    const cropHeight = video.videoHeight / 2;
 
+                    // Get cropped image from video
+                    const croppedImage = cropImage(video, cropX, cropY, cropWidth, cropHeight);
 
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); // This should now work
-                }
+                    // Create a temporary image element to process cropped data
+                    const img = new Image();
+                    img.src = croppedImage;
+                    img.onload = () => {
+                        const tempCanvas = document.createElement("canvas");
+                        const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
 
+                        tempCanvas.width = cropWidth;
+                        tempCanvas.height = cropHeight;
+                        tempCtx.drawImage(img, 0, 0, cropWidth, cropHeight);
 
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, canvas.width, canvas.height);
+                        // Extract image data from cropped region
+                        const imageData = tempCtx.getImageData(0, 0, cropWidth, cropHeight);
+                        const code = jsQR(imageData.data, cropWidth, cropHeight);
 
-                if (code) {
-                    compareQRCode(code.data); // Compare with stored data
-
-                    setTimeout(processFrame, 5000); // Wait 2 seconds before scanning again
-                } else {
-                    requestAnimationFrame(processFrame); // Continue scanning
+                        if (code) {
+                            compareQRCode(code.data); // Process QR Code
+                            setTimeout(processFrame, 5000); // Delay next scan
+                        } else {
+                            requestAnimationFrame(processFrame); // Continue scanning
+                        }
+                    };
                 }
             }
 
-            requestAnimationFrame(processFrame); // Start scanning loop
+            requestAnimationFrame(processFrame);
         }
+
 
         // Start camera and scanning
         async function startCamera() {
