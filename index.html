@@ -53,24 +53,6 @@
             transform: translateX(26px);
         }
 
-        .box {
-            width: 100%;
-            /* Small container */
-            height: 100%;
-            overflow: hidden;
-            /* Prevents overflow */
-            position: relative;
-        }
-
-        video {
-            width: auto;
-            /* Keeps original resolution */
-            height: auto;
-            max-width: none;
-            max-height: none;
-        }
-
-
         .container {
             display: flex;
             flex-direction: column;
@@ -80,16 +62,13 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title" id="title">Live QR Code Scanner 1.9</h1>
-        <!-- Open Scanner Button -->
-        <button class="button is-primary" onclick="openScanner()">📷 Open QR Scanner</button>
-
-        <!-- <label class="switch">
+        <h1 class="title" id="title">Live QR Code Scanner 1.7</h1>
+        <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
         </label>
         <video id="qr-video" autoplay></video>
-        <canvas id="qr-canvas" hidden></canvas> -->
+        <canvas id="qr-canvas" hidden></canvas>
 
         <h2 class="subtitle">Scanned Content</h2>
         <p id="scanned-content" class="notification"></p>
@@ -107,18 +86,6 @@
         </table>
     </div>
 
-    <!-- Modal for Camera Scanner -->
-    <div id="scanner-modal" class="modal">
-        <div class="modal-background"></div>
-        <div class="modal-content">
-            <div class="box">
-                <video id="qr-video" autoplay></video>
-                <canvas id="qr-canvas" hidden></canvas>
-            </div>
-        </div>
-        <button class="modal-close is-large" onclick="closeScanner()"></button>
-    </div>
-
     <script>
         const apiUrl = "https://script.google.com/macros/s/AKfycbxvd0TSJS43EomN70qULX14lpCuTUwDMCvgNdS7QS3P1RfeME8b6JVZ3U-MnSMtazSM/exec"; // Replace with your web app URL
         const video = document.getElementById('qr-video');
@@ -132,19 +99,7 @@
         let stream = null; // Store the camera stream
 
         let storedQRData = []; // Array to store fetched QR codes
-
-        // Fetch data only once and store it
-        async function fetchSheetData() {
-
-            try {
-                const response = await fetch(apiUrl);
-                storedQRData = await response.json(); // Store fetched QR codes in array
-                //console.log("Stored QR Codes:", storedQRData);
-                populateTable(); // Add data to table
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
-        }
+        let scanning = true;
 
         // Populate table with fetched QR codes
         function populateTable() {
@@ -169,6 +124,7 @@
                 result.textContent = `✅ QR Code Matched!\nData: ${matchedData}`;
                 setTimeout(() => {
                     result.textContent = ""
+                    scanning = true;
                 }, 5000);
                 sendQRData(matchedData)
 
@@ -177,41 +133,38 @@
                 // Hide the message after 5 seconds
                 setTimeout(() => {
                     result.textContent = "";
-                }, 500);
+                }, 5000);
             }
-            setTimeout(() => {
-                closeScanner(); // Automatically close modal after scan
-            }, 500);
         }
 
+        // Scan QR Code & Trigger Comparison (Continuous Scanning)
         function scanQRCode() {
             function processFrame() {
-                if (video.videoWidth === 0 || video.videoHeight === 0) return;
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    canvas.width = video.videoWidth;  // Increase resolution
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.filter = "contrast(280%) brightness(180%)"; // Boost contrast & brightness
 
-                // Reduce canvas size for mobile optimization
-                const scaleFactor = window.innerWidth < 768 ? 1.2 : 2; // Adjust based on screen size
-                canvas.width = video.videoWidth / scaleFactor;
-                canvas.height = video.videoHeight / scaleFactor;
 
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                ctx.filter = "contrast(180%) brightness(110%)"; // Light image processing
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); // This should now work
+                }
+
 
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, canvas.width, canvas.height);
 
                 if (code) {
-                    compareQRCode(code.data); // Handle the detected QR code
+                    compareQRCode(code.data); // Compare with stored data
 
-                    setTimeout(processFrame, 6000); // Wait 2 seconds before scanning again
+                    setTimeout(processFrame, 5000); // Wait 2 seconds before scanning again
                 } else {
-
                     requestAnimationFrame(processFrame); // Continue scanning
                 }
             }
 
-            setTimeout(() => requestAnimationFrame(processFrame), 100); // Optimized FPS
+            requestAnimationFrame(processFrame); // Start scanning loop
         }
-
 
         // Start camera and scanning
         async function startCamera() {
@@ -229,7 +182,7 @@
 
                     setTimeout(() => {
                         scanQRCode(); // Start scanning after a slight delay
-                    }, 3000);
+                    }, 1000);
 
                 });
 
@@ -244,14 +197,27 @@
             }
         }
 
-        // // Toggle camera state
-        // toggle.addEventListener("change", () => {
-        //     if (toggle.checked) {
-        //         startCamera();
-        //     } else {
-        //         stopCamera();
-        //     }
-        // });
+        // Toggle camera state
+        toggle.addEventListener("change", () => {
+            if (toggle.checked) {
+                startCamera();
+            } else {
+                stopCamera();
+            }
+        });
+
+        // Fetch data only once and store it
+        async function fetchSheetData() {
+
+            try {
+                const response = await fetch(apiUrl);
+                storedQRData = await response.json(); // Store fetched QR codes in array
+                //console.log("Stored QR Codes:", storedQRData);
+                populateTable(); // Add data to table
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
 
         async function sendQRData(scannedQR) {
             let firstIndex = ""
@@ -300,24 +266,6 @@
             }
         }
 
-
-        // Fetch data once when page loads
-        fetchSheetData();
-        // Resume scanning **ONLY AFTER ALERT IS CLOSED**
-        window.onfocus = function () {
-
-        };
-
-        function openScanner() {
-            document.getElementById("scanner-modal").classList.add("is-active");
-            startCamera(); // Start scanning when modal opens
-        }
-
-        function closeScanner() {
-            document.getElementById("scanner-modal").classList.remove("is-active");
-            stopCamera(); // Stop camera when modal closes
-        }
-
         // Retrieve the counter values or initialize them
         let major = parseInt(localStorage.getItem("major")) || 1;
         let minor = parseInt(localStorage.getItem("minor")) || 0;
@@ -331,12 +279,11 @@
             patch = 0;
             minor += 1;
         }
-
+        fetchSheetData()
         localStorage.setItem("major", major);
         localStorage.setItem("minor", minor);
         localStorage.setItem("patch", patch);
         document.getElementById("title").innerText = `Live QR Code Scanner ${major}.${minor}.${patch}`
-
     </script>
 </body>
 
