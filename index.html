@@ -53,17 +53,21 @@
             transform: translateX(26px);
         }
 
-        video {
+        .box {
             width: 100%;
-            /* Full width for mobile */
-            height: 10cm;
-            /* Fixed height */
-            max-height: 400px;
-            /* Prevent excessive height */
-            border: 2px solid #00d1b2;
-            border-radius: 8px;
-            object-fit: cover;
-            /* Ensures proper scaling */
+            /* Small container */
+            height: 100%;
+            overflow: hidden;
+            /* Prevents overflow */
+            position: relative;
+        }
+
+        video {
+            width: auto;
+            /* Keeps original resolution */
+            height: auto;
+            max-width: none;
+            max-height: none;
         }
 
 
@@ -76,13 +80,16 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="title">Live QR Code Scanner 1.9</h1>
-        <label class="switch">
+        <h1 class="title" id="title">Live QR Code Scanner 1.9</h1>
+        <!-- Open Scanner Button -->
+        <button class="button is-primary" onclick="openScanner()">📷 Open QR Scanner</button>
+
+        <!-- <label class="switch">
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> Enable Camera
         </label>
         <video id="qr-video" autoplay></video>
-        <canvas id="qr-canvas" hidden></canvas>
+        <canvas id="qr-canvas" hidden></canvas> -->
 
         <h2 class="subtitle">Scanned Content</h2>
         <p id="scanned-content" class="notification"></p>
@@ -100,6 +107,18 @@
         </table>
     </div>
 
+    <!-- Modal for Camera Scanner -->
+    <div id="scanner-modal" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <div class="box">
+                <video id="qr-video" autoplay></video>
+                <canvas id="qr-canvas" hidden></canvas>
+            </div>
+        </div>
+        <button class="modal-close is-large" onclick="closeScanner()"></button>
+    </div>
+
     <script>
         const apiUrl = "https://script.google.com/macros/s/AKfycbxvd0TSJS43EomN70qULX14lpCuTUwDMCvgNdS7QS3P1RfeME8b6JVZ3U-MnSMtazSM/exec"; // Replace with your web app URL
         const video = document.getElementById('qr-video');
@@ -113,7 +132,6 @@
         let stream = null; // Store the camera stream
 
         let storedQRData = []; // Array to store fetched QR codes
-        let scanning = true;
 
         // Fetch data only once and store it
         async function fetchSheetData() {
@@ -151,7 +169,6 @@
                 result.textContent = `✅ QR Code Matched!\nData: ${matchedData}`;
                 setTimeout(() => {
                     result.textContent = ""
-                    scanning = true;
                 }, 5000);
                 sendQRData(matchedData)
 
@@ -160,8 +177,11 @@
                 // Hide the message after 5 seconds
                 setTimeout(() => {
                     result.textContent = "";
-                }, 5000);
+                }, 500);
             }
+            setTimeout(() => {
+                closeScanner(); // Automatically close modal after scan
+            }, 500);
         }
 
         function scanQRCode() {
@@ -182,7 +202,7 @@
                 if (code) {
                     compareQRCode(code.data); // Handle the detected QR code
 
-                    setTimeout(processFrame, 5000); // Wait 2 seconds before scanning again
+                    setTimeout(processFrame, 6000); // Wait 2 seconds before scanning again
                 } else {
 
                     requestAnimationFrame(processFrame); // Continue scanning
@@ -209,7 +229,7 @@
 
                     setTimeout(() => {
                         scanQRCode(); // Start scanning after a slight delay
-                    }, 1000);
+                    }, 3000);
 
                 });
 
@@ -224,14 +244,14 @@
             }
         }
 
-        // Toggle camera state
-        toggle.addEventListener("change", () => {
-            if (toggle.checked) {
-                startCamera();
-            } else {
-                stopCamera();
-            }
-        });
+        // // Toggle camera state
+        // toggle.addEventListener("change", () => {
+        //     if (toggle.checked) {
+        //         startCamera();
+        //     } else {
+        //         stopCamera();
+        //     }
+        // });
 
         async function sendQRData(scannedQR) {
             let firstIndex = ""
@@ -287,6 +307,36 @@
         window.onfocus = function () {
 
         };
+
+        function openScanner() {
+            document.getElementById("scanner-modal").classList.add("is-active");
+            startCamera(); // Start scanning when modal opens
+        }
+
+        function closeScanner() {
+            document.getElementById("scanner-modal").classList.remove("is-active");
+            stopCamera(); // Stop camera when modal closes
+        }
+
+        // Retrieve the counter values or initialize them
+        let major = parseInt(localStorage.getItem("major")) || 1;
+        let minor = parseInt(localStorage.getItem("minor")) || 0;
+        let patch = parseInt(localStorage.getItem("patch")) || 0;
+
+        // Increment the patch version
+        patch += 1;
+
+        // Optionally, reset patch and increment minor or major based on your logic
+        if (patch > 9) { // Example condition
+            patch = 0;
+            minor += 1;
+        }
+
+        localStorage.setItem("major", major);
+        localStorage.setItem("minor", minor);
+        localStorage.setItem("patch", patch);
+        document.getElementById("title").innerText = `Live QR Code Scanner ${major}.${minor}.${patch}`
+
     </script>
 </body>
 
