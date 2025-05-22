@@ -57,6 +57,12 @@
             display: flex;
             flex-direction: column;
         }
+
+        video {
+            height: auto;
+            width: auto;
+
+        }
     </style>
 </head>
 
@@ -65,24 +71,26 @@
         <h1 class="title" id="title">Live QR Code Scanner 1.7</h1>
         <label class="switch">
             <input type="checkbox" id="toggle-camera">
-            <span class="slider round"></span> Enable Camera
+            <span class="slider round"></span> <span class="slider-text"> Enable Camera</span>
         </label>
-        <video id="qr-video" autoplay></video>
+        <video id="qr-video" style="display: none;" autoplay></video>
         <canvas id="qr-canvas" hidden></canvas>
 
         <h2 class="subtitle">Scanned Content</h2>
         <p id="scanned-content" class="notification"></p>
         <p id="qr-result" class="notification"></p>
 
-        <table class="table">
+        <table class="table is-striped is-narrow is-hoverable">
             <thead>
                 <tr>
-                    <th>Stored QR Code</th>
+                    <th>District</th>
+                    <th>Police</th>
+                    <th>Vehicle</th>
+                    <th>Make</th>
+                    <th>GPS Serial No</th>
                 </tr>
             </thead>
-            <tbody id="qr-table">
-                <!-- QR data will be added here -->
-            </tbody>
+            <tbody id="gpsTableBody"></tbody>
         </table>
     </div>
 
@@ -99,16 +107,22 @@
         let stream = null; // Store the camera stream
 
         let storedQRData = []; // Array to store fetched QR codes
+        let storedGPSData = [];
         let scanning = true;
 
-        // Populate table with fetched QR codes
         function populateTable() {
-            qrTable.innerHTML = ""; // Clear previous data
+            const tableBody = document.getElementById("gpsTableBody");
 
-            storedQRData.forEach(qrCode => {
+            storedGPSData.gpsData.forEach(data => {
                 const row = document.createElement("tr");
-                row.innerHTML = `<td>${qrCode}</td>`;
-                qrTable.appendChild(row);
+                row.innerHTML = `
+                    <td>${data.district}</td>
+                    <td>${data.police}</td>
+                    <td>${data.vehicle}</td>
+                    <td>${data.make}</td>
+                    <td>${data.gps}</td>
+                `;
+                tableBody.appendChild(row);
             });
         }
 
@@ -200,19 +214,32 @@
         // Toggle camera state
         toggle.addEventListener("change", () => {
             if (toggle.checked) {
+                document.getElementById("qr-video").style.display = "block"
                 startCamera();
             } else {
                 stopCamera();
+                document.getElementById("qr-video").style.display = "none"
             }
         });
 
         // Fetch data only once and store it
+        async function fetchSheetColumn() {
+
+            try {
+                const response = await fetch(`${apiUrl}?action=getGPSSerialNo&module=Sheet2`);
+                storedQRData = await response.json(); // Store fetched QR codes in array
+                //console.log("Stored QR Codes:", storedQRData);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+        // Fetch data only once and store it
         async function fetchSheetData() {
 
             try {
-                const response = await fetch(apiUrl);
-                storedQRData = await response.json(); // Store fetched QR codes in array
-                //console.log("Stored QR Codes:", storedQRData);
+                const response = await fetch(`${apiUrl}?action=getGPSData&module=Sheet4`);
+                storedGPSData = await response.json(); // Store fetched QR codes in array
+                console.log("Stored QR Codes:", storedGPSData);
                 populateTable(); // Add data to table
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -265,7 +292,6 @@
                 console.error("Error sending data:", error);
             }
         }
-
         // Retrieve the counter values or initialize them
         let major = parseInt(localStorage.getItem("major")) || 1;
         let minor = parseInt(localStorage.getItem("minor")) || 0;
@@ -279,7 +305,8 @@
             patch = 0;
             minor += 1;
         }
-        fetchSheetData()
+        fetchSheetData();
+        fetchSheetColumn();
         localStorage.setItem("major", major);
         localStorage.setItem("minor", minor);
         localStorage.setItem("patch", patch);
