@@ -112,6 +112,7 @@
 
         function populateTable() {
             const tableBody = document.getElementById("gpsTableBody");
+            tableBody.innerHTML = ""
 
             storedGPSData.gpsData.forEach(data => {
                 const row = document.createElement("tr");
@@ -268,6 +269,9 @@
 
                 const result = await response.json();
                 console.log("Saved Data:", result);
+                if (result.status === 'success') {
+                    fetchSheetData();
+                }
                 let alertObject = {}
                 if (result.concatValue) {
                     const resultSplit = result.concatValue.split("-");
