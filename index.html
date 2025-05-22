@@ -84,7 +84,7 @@
             <input type="checkbox" id="toggle-camera">
             <span class="slider round"></span> <span class="slider-text"> Enable Camera</span>
         </label>
-        <div class="video-container" style="display: none;">
+        <div class="video-container" id="videoContainer" style="display: none;">
             <video id="qr-video" autoplay></video>
             <canvas id="qr-canvas" hidden></canvas>
         </div>
@@ -228,11 +228,11 @@
         // Toggle camera state
         toggle.addEventListener("change", () => {
             if (toggle.checked) {
-                document.getElementById("qr-video").style.display = "block"
+                document.getElementById("videoContainer").style.display = "block"
                 startCamera();
             } else {
                 stopCamera();
-                document.getElementById("qr-video").style.display = "none"
+                document.getElementById("videoContainer").style.display = "none"
             }
         });
 
